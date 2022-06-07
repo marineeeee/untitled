@@ -1,0 +1,64 @@
+library(tidyverse)
+library(data.table)
+
+
+data<- read.csv('/Users/mbalet5/Documents/Rtest/Data frames CSV/testdataframe.csv',
+             sep = ',', header = TRUE)
+
+data<- data[ ,-c(1,2,3)]
+
+xdata<- data.frame(data$date,data$CO2.Emissions,data$Phosphorus, data$Land.System.Change, data$Ecological.Footprint,
+               data$Material.Footprint ,data$Nitrogen)
+xdata<- gsub('data.','',xdata)
+
+ydata<-data.frame(data$date,data$Employment, data$Equality, data$Democratic.Quality, data$Social.Support, data$Education,
+                  data$Access.to.Energy, data$Income.Poverty, data$Sanitation, data$Nutrition, data$Life.Expectancy, data$Life.Satisfaction)
+
+
+pairs <- list()
+n <- 1;
+for(i in 1:length(xdata)) {
+  for(j in 1:length(ydata)) {
+    pairs[[n]] <- data.frame(xdata[i], ydata[j]);
+    
+    pairs[[n]][pairs[[n]]== 0.00]<- NA
+    
+    pairs[[n]]<- pairs[[n]][!is.na(pairs[[n]][1]),]
+    pairs[[n]]<- pairs[[n]][!is.na(pairs[[n]][2]),] 
+    
+    pairs[[n]]<- c(pairs[[n]][1],pairs[[n]][2])
+    n <- n + 1;
+  }
+}
+
+years<- unique(data$date)
+f<-1
+
+for (i in 1:length(pairs)) {
+  
+  final_mat<- matrix(nrow = 10,ncol = length(date));
+
+  #for each year
+  for (j in 1:length(years)) {
+    
+    row_indexes<-which(data$date==years[j])
+       #lm(y~log(x))
+    res<-lm(row_indexes,unlist(pairs[[i]][1][[f]])~
+              log(row_indexes,unlist(pairs[[i]][2][[f]])))
+    summary_res<-summary(res)
+    tmp<-data.frame(summary_res$coefficients)
+    
+    final_vector<-unlist(c(tmp[1, ], tmp[2, ], summary_res$r.squared, summary_res$adj.r.squared))
+    
+    final_mat[,j]<- final_vector;
+    
+  }
+  output_table<-data.frame(final_mat);
+  colnames(output_table)<- as.character(years);
+  rownames(output_table)<- c(paste0('(Intercept)',colnames(tmp[1,])), paste0('(Log)', colnames(tmp[2,])),
+                             'r.squared','adj.r.squared');
+  assign(paste0('output_table', n,sep = ''),output_table) 
+  #fwrite(output_table, row.names = T, sep = '\t', file = paste('/Users/mbalet5/Documents/Rtest/Data frames CSV/'),
+   #      colnames(data)[pairs([[i]][1])], '.tsv', sep='')
+}
+traceback()
